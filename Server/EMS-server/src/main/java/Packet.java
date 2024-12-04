@@ -24,7 +24,7 @@ public class Packet {
     }
 
     // Static method to create a Packet from a JSON string
-    public static Packet fromString(String jsonString) {
+    public static Packet parse(String jsonString) {
         Map<String, Object> data = gson.fromJson(jsonString, Map.class);
         return new Packet(data);
     }
@@ -47,7 +47,7 @@ public class Packet {
         System.out.println("Serialized Packet: " + packetString);
 
         // Reconstruct packet from JSON string
-        Packet reconstructedPacket = Packet.fromString(packetString);
+        Packet reconstructedPacket = Packet.parse(packetString);
         System.out.println("Sensor: " + reconstructedPacket.get("sensor"));
         System.out.println("Value: " + reconstructedPacket.get("value"));
     }

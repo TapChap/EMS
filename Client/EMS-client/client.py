@@ -15,11 +15,25 @@ def main():
 
     util = ClientUtil(server)
 
-    handshake = util.receive()
-
-    myId = handshake["id"]
     print("\nConnected to the server.")
-    print(f"myId: {myId}\n")
+    # print(f"myId: {myId}\n")
+
+    username = input("username: ")
+    util.send(Packet({"username": username}))
+
+    signin = util.receive()
+    myId = signin["id"]
+
+    if myId == -1:
+        print("username already taken")
+        return
+
+    users = util.receive()
+    connectedUsers = users["users"]
+
+    print("sign in successful")
+    print("connected users:")
+    print(connectedUsers)
 
     print("'exit' to quit")
 
@@ -27,21 +41,21 @@ def main():
         mode = input("send or receive? (s/r): ")
 
         if mode == 'exit':
-            util.send(Packet({"targetId": -1, "message": "exit"}))
+            util.send(Packet({"targetName": -1, "message": "exit"}))
             break
 
         elif mode == 's':
-            targetId = int(input("target id: "))
+            targetName = input("target name: ")
             message = input("message: ")
 
-            util.send(Packet({"targetId": targetId, "message": message}));
+            util.send(Packet({"targetName": targetName, "message": message}));
             print("message sent\n")
 
         else:
             print("\nwaiting for incoming messages...")
             incoming = util.receive()
 
-            print(f"message from client {incoming["senderId"]}:\n{incoming["message"]}\n")
+            print(f"message from {incoming["senderName"]}:\n{incoming["message"]}\n")
 
     # server.close()
     print("Disconnected.")

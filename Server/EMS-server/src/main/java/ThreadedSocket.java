@@ -3,11 +3,12 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.util.Map;
+import java.util.*;
 
 public class ThreadedSocket extends Thread {
     private Socket socket;
     private int id;
+    private String username;
 
     private BufferedReader in;
     private PrintWriter out;
@@ -21,12 +22,17 @@ public class ThreadedSocket extends Thread {
         return this.id;
     }
 
+    public String getUsername() {
+        return username;
+    }
+
     public void setId(int id){
         this.id = id;
     }
 
     public boolean isConnected(){
         if (this.socket == null) return false;
+//        System.out.println("client{" + this.id+"} " + (this.socket.isConnected()? "connected" : "disconnected"));
         return this.socket.isConnected();
     }
 
@@ -35,15 +41,11 @@ public class ThreadedSocket extends Thread {
         return (isConnected()? "client{" : "socket{") + getClientId() + "}";
     }
 
-    public String todebugString(){
-        return "id: " + getClientId() + ", isConnected: " + isConnected();
+    public void passToUser(String senderName, String message){
+        out.println(new Packet(Map.of("senderName", senderName, "message", message)));
     }
 
-    public void passToUser(int senderId, String message){
-        out.println(new Packet(Map.of("senderId", senderId, "message", message)));
-    }
-
-    public void run(){
+    public void run() {
         // server - client code here
         // Input and output streams for communication
 
@@ -55,24 +57,44 @@ public class ThreadedSocket extends Thread {
             this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             this.out = new PrintWriter(socket.getOutputStream(), true);
 
-            // send the client it's id
-            out.println(new Packet(Map.of("id", id)));
+            this.username = (String) Packet.parse(in.readLine()).get("username");
+            System.out.println("user signin attempt with username: " + this.username);
+
+            // auth system
+            if (!Server.signUser(this.username, this.id)) {
+                out.println(new Packet(Map.of("id", -1)));
+                System.out.println("signin fail, closing connection");
+                socket.close();
+                return;
+            } else {
+                out.println(new Packet(Map.of("id", this.id)));
+
+                System.out.println("sign in successful");
+            }
+
+            Object[] connectedUsers = Server.getConnectedUsers().toArray();
+            ArrayList<String> foreignUsername = new ArrayList<>(); // all usernames excluding this one
+
+            for (Object name: connectedUsers) if (!name.equals(this.username)) foreignUsername.add((String) name);
+
+            out.println(new Packet(Map.of("users", foreignUsername.toArray())));
 
             // Chat loop
             while (true) {
-                Packet incoming = Packet.fromString(in.readLine());
+                Packet incoming = Packet.parse(in.readLine());
                 String message = (String) incoming.get("message");
-                int targetID = (Integer) incoming.get("targetId");
+                String targetName = (String) incoming.get("targetName");
 
                 if (message.equals("exit")) break;
 
-                System.out.println("(" + this + " to client{" + targetID + "}): " + message);
-                Server.sendMessageToID(message, targetID, getClientId());
+                System.out.println("(" + this + " to client{" + targetName + "}): " + message);
+                out.println(new Packet(Map.of("status", Server.sendMessageToID(message, targetName, this.username))));
+
             }
 
             socket.close();
             System.out.println("\nsocket with " + this + " closed.");
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
