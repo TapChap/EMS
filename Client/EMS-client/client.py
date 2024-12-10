@@ -1,5 +1,6 @@
 import socket
 
+from ContinuesListener import ContinuesListener
 from clientUtil import ClientUtil
 from packet import Packet
 
@@ -38,27 +39,34 @@ def main():
     print("'exit' to quit")
 
     while True:
-        mode = input("send or receive? (s/r): ")
+        targetUser = input("who would you like to message with?")
 
-        if mode == 'exit':
-            util.send(Packet({"targetName": -1, "message": "exit"}))
+        if targetUser == 'exit':
             break
 
-        elif mode == 's':
-            targetName = input("target name: ")
-            message = input("message: ")
+        util.send(Packet({"targetUser", targetUser}))
+        print(f"waiting for {targetUser}'s approval")
 
-            util.send(Packet({"targetName": targetName, "message": message}));
-            print("message sent\n")
+        incoming = util.receive()
+        if incoming["reponse"] == 200:
+            print(f"entering chat with {targetUser}, type end to exit chat")
+            listener = ContinuesListener(targetUser)
+            listener.run()
+
+            while listener.is_alive():
+                message = input("message: ")
+                util.send(Packet({"message", message}))
+
+            print(f"{targetUser} has left the chat")
 
         else:
-            print("\nwaiting for incoming messages...")
-            incoming = util.receive()
-
-            print(f"message from {incoming["senderName"]}:\n{incoming["message"]}\n")
+            print(f"{targetUser} has declined the chat invitation\n")
 
     # server.close()
     print("Disconnected.")
+
+    # util.send(Packet({"key1": val1, "key2": val2}));
+    # incoming = util.receive()
 
 
 if __name__ == "__main__":

@@ -57,6 +57,19 @@ public class Server {
         return 200;
     }
 
+    private static int getUserByName(String name){
+        for (int i = 0; i < clients.size(); i++) {
+            if (clients.get(i).getUsername().equals(name)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private static void inviteToChat(String user, String sender){
+        clients.get(getUserByName(user)).askToChat(sender);
+    }
+
     private static void updateUsernames(){
         ArrayList<String> clientNames = new ArrayList<>();
         for (ThreadedSocket client: clients){

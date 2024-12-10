@@ -82,10 +82,9 @@ public class ThreadedSocket extends Thread {
             // Chat loop
             while (true) {
                 Packet incoming = Packet.parse(in.readLine());
-                String message = (String) incoming.get("message");
-                String targetName = (String) incoming.get("targetName");
+                String targetName = (String) incoming.get("targetUser");
 
-                if (message.equals("exit")) break;
+                if (targetName.equals("exit")) break;
 
                 System.out.println("(" + this + " to client{" + targetName + "}): " + message);
                 out.println(new Packet(Map.of("status", Server.sendMessageToID(message, targetName, this.username))));
@@ -97,5 +96,10 @@ public class ThreadedSocket extends Thread {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public void askToChat(String sender) throws IOException {
+        out.println(new Packet(Map.of("askToChat", sender)));
+        Packet response = Packet.parse(in.readLine());
     }
 }
